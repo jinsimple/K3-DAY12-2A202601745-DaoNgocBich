@@ -12,7 +12,7 @@
 |-----|----------|
 | Họ và tên | DaoNgocBich |
 | Mã học viên | 2A202601745 |
-| Repo | https://github.com/jinsimple/K3-Day12-Cloud-Services-And-Deployment2A202601745-DaoNgocBich |
+| Repo | https://github.com/jinsimple/K3-DAY12-2A202601745-DaoNgocBich |
 
 ## Service
 
