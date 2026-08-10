@@ -4,3 +4,20 @@
 
 .git
 .gitignore
+
+# secret — không bao giờ được vào image
+.env
+
+# môi trường & bytecode local
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+
+# không cần trong image runtime
+tests/
+screenshots/
+*.md
+.github/
+nginx/
+

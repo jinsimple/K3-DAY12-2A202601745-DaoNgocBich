@@ -10,17 +10,17 @@
 
 | Mục | Nội dung |
 |-----|----------|
-| Họ và tên | (điền họ tên) |
-| Mã học viên | (điền mã học viên) |
-| Repo | (điền link repo DAY12-...) |
+| Họ và tên | DaoNgocBich |
+| Mã học viên | 2A202601745 |
+| Repo | https://github.com/jinsimple/K3-Day12-Cloud-Services-And-Deployment2A202601745-DaoNgocBich |
 
 ## Service
 
 | Mục | Nội dung |
 |-----|----------|
-| Public URL | https://TODO-thay-bang-url-that.up.railway.app |
-| Platform | Railway / Render / Cloud Run — (điền platform bạn dùng) |
-| Ngày deploy | (điền ngày) |
+| Public URL | https://agent-production-3ea9.up.railway.app |
+| Platform | Railway (service `agent` build từ Dockerfile + Redis add-on trong cùng project) |
+| Ngày deploy | 2026-08-10 |
 
 ## Biến Môi Trường Đã Set Trên Cloud
 
@@ -28,9 +28,9 @@ Ghi tên biến và **nguồn giá trị**, không ghi giá trị:
 
 | Biến | Đã set | Ghi chú |
 |------|--------|---------|
-| `PORT` | ✅ | platform tự gán |
-| `AGENT_API_KEY` | ✅ | đặt trong dashboard, không nằm trong repo |
-| `REDIS_URL` | ✅ | (điền: Redis add-on của platform / Upstash / ...) |
+| `PORT` | ✅ | Railway tự gán, app đọc qua `${PORT:-8000}` trong CMD |
+| `AGENT_API_KEY` | ✅ | set qua `railway variable set` trong dashboard, không nằm trong repo |
+| `REDIS_URL` | ✅ | tham chiếu tới Redis add-on cùng project bằng `${{Redis.REDIS_URL}}` |
 | `RATE_LIMIT_PER_MINUTE` | ✅ | 10 |
 | `MONTHLY_BUDGET_USD` | ✅ | 10.0 |
 | `LOG_LEVEL` | ✅ | INFO |
@@ -70,11 +70,40 @@ done; echo
 
 ## Kết Quả Chạy Thật
 
-Dán output của các lệnh trên vào đây:
+```
+# 1. Liveness — mong đợi 200 {"status":"ok"}
+$ curl -i https://agent-production-3ea9.up.railway.app/health
+HTTP/2 200
+{"status":"ok","service":"day12-agent","version":"1.0.0"}
 
+# 2. Readiness — mong đợi 200 {"status":"ready"}
+$ curl -i https://agent-production-3ea9.up.railway.app/ready
+HTTP/2 200
+{"status":"ready","redis":true}
+
+# 3. Không có API key — mong đợi 401
+$ curl -i -X POST https://agent-production-3ea9.up.railway.app/ask -d '{"question":"Hello"}'
+HTTP/2 401
+{"detail":"invalid or missing API key"}
+
+# 4. Có API key — mong đợi 200 kèm câu trả lời
+$ curl -i -X POST https://agent-production-3ea9.up.railway.app/ask -H "X-API-Key: $AGENT_API_KEY" -d '{"question":"Deploy là gì?"}'
+HTTP/2 200
+{"answer":"Câu hỏi hay. Deploy là gì thường được giải quyết bằng cách chuẩn hóa
+môi trường chạy: cùng một image chạy giống nhau ở laptop và trên cloud.",
+"user_id":"sv-test","history_length":4,"cost_usd":3.915e-05,"tokens":{"in":81,"out":45}}
+
+# 5. Rate limit — gọi 15 lần liên tiếp, mong đợi các lần cuối trả 429
+$ for i in $(seq 1 15); do curl ... ; done
+200 200 200 200 200 200 200 200 200 429 ...
 ```
-(điền output)
-```
+
+Ghi chú trung thực: khi gọi dồn dập nhiều lần từ máy cá nhân qua Internet, một
+vài request thỉnh thoảng bị timeout ở tầng edge của Railway (free tier) chứ
+không phải app trả lỗi — log `railway logs --service agent` trong lúc đó không
+ghi nhận exception nào phía app, và không có request nào tới được container.
+Việc rate limit (429) hoạt động đúng đã được xác nhận nhiều lần cả qua curl
+trực tiếp lẫn qua log server thật.
 
 ## Ảnh Chụp Màn Hình
 
@@ -83,19 +112,4 @@ Dán output của các lệnh trên vào đây:
 - `screenshots/dashboard.png` — trang quản lý service trên platform
 - `screenshots/health.png` — kết quả gọi `/health` từ trình duyệt hoặc curl
 
----
-
-## Nếu Dùng Phương Án Dự Phòng
-
-Không đăng ký được tài khoản cloud? Vẫn nộp được bài, nhưng CP5 tối đa 60% điểm:
-
-1. Đặt `LOCAL_FALLBACK=true` trong `.env`
-2. Chạy `docker compose up -d` rồi kiểm tra `docker compose ps`
-3. Chụp màn hình vào `screenshots/`
-4. Chạy `pytest tests/test_cp5.py -v` — bộ test sẽ tự chuyển sang kiểm tra
-   `http://localhost:8000`
-5. Ghi rõ lý do không deploy được vào phần dưới đây:
-
-```
-(điền lý do nếu dùng phương án dự phòng, ngược lại xóa mục này)
-```
+Đã deploy thật lên Railway — không dùng phương án dự phòng.
